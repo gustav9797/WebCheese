@@ -1,15 +1,12 @@
 var gl;
 var shaderProgram;
 var vertexPositionAttribute;
-var vertexColorAttribute;
+var vertexUVAttribute;
 
 
 var GLManager = function GLManager(canvas) {
-
-        // Initialize the GL context
   this.initWebGL(canvas);
-  // Only continue if WebGL is available and working
-  
+
   if (gl) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
     gl.clearDepth(1.0);                 // Clear everything
@@ -17,9 +14,7 @@ var GLManager = function GLManager(canvas) {
     gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
     gl.enable(gl.BLEND);
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    // Initialize the shaders; this is where all the lighting for the
-    // vertices and so forth is established.
-    
+
     this.initShaders();
   }
 }
@@ -34,7 +29,6 @@ GLManager.prototype.initWebGL = function(canvas){
   }
   
   // If we don't have a GL context, give up now
-  
   if (!gl) {
     alert("Unable to initialize WebGL. Your browser may not support it.");
   }
@@ -45,14 +39,12 @@ GLManager.prototype.initShaders = function(canvas){
 	var vertexShader = this.getShader(gl, "shader-vs");
   
   // Create the shader program
-  
   shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
   
   // If creating the shader program failed, alert
-  
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
     alert("Unable to initialize the shader program.");
   }
@@ -62,22 +54,20 @@ GLManager.prototype.initShaders = function(canvas){
   vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
   gl.enableVertexAttribArray(vertexPositionAttribute);
   
-  vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexUV");
-  gl.enableVertexAttribArray(vertexColorAttribute);
+  vertexUVAttribute = gl.getAttribLocation(shaderProgram, "aVertexUV");
+  gl.enableVertexAttribArray(vertexUVAttribute);
 };
 
 GLManager.prototype.getShader = function(gl, id){
   var shaderScript = document.getElementById(id);
   
   // Didn't find an element with the specified ID; abort.
-  
   if (!shaderScript) {
     return null;
   }
   
   // Walk through the source element's children, building the
   // shader source string.
-  
   var theSource = "";
   var currentChild = shaderScript.firstChild;
   
@@ -91,7 +81,6 @@ GLManager.prototype.getShader = function(gl, id){
   
   // Now figure out what type of shader script we have,
   // based on its MIME type.
-  
   var shader;
   
   if (shaderScript.type == "x-shader/x-fragment") {
@@ -103,15 +92,11 @@ GLManager.prototype.getShader = function(gl, id){
   }
   
   // Send the source to the shader object
-  
   gl.shaderSource(shader, theSource);
-  
   // Compile the shader program
-  
   gl.compileShader(shader);
   
   // See if it compiled successfully
-  
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
     return null;
