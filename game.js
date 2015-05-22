@@ -1,81 +1,168 @@
-var Game = {};
-Game.fps = 50;
-Game.rectangles = [];
+var canvas;
+var gl;
+var squareVerticesBuffer;
+var squareVerticesColorBuffer;
+var mvMatrix;
+var shaderProgram;
+var vertexPositionAttribute;
+var vertexColorAttribute;
+var perspectiveMatrix;
 
-Game.initialize = function() {
-  this.entities = [];
-  this.context = document.getElementById("viewport").getContext("2d");
-};
+//
+// start
+//
+// Called when the canvas is created to get the ball rolling.
+// Figuratively, that is. There's nothing moving in this demo.
+//
+function start() {
+  canvas = document.getElementById("glcanvas");
 
-Game.draw = function() {
-	for	(index = 0; index < Game.rectangles.length; index++) {
-		Game.drawRect(Game.rectangles[index].x, Game.rectangles[index].y, Game.rectangles[index].width, Game.rectangles[index].height);
-	}
+  var glManager = new GLManager(canvas);
+  //glManager.initWebGL(canvas);
+  //initWebGL(canvas);      // Initialize the GL context
+  
+  // Only continue if WebGL is available and working
+  
+  if (gl) {
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
+    gl.clearDepth(1.0);                 // Clear everything
+    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+    
+    // Initialize the shaders; this is where all the lighting for the
+    // vertices and so forth is established.
+    
+    //initShaders();
+    
+    // Here's where we call the routine that builds all the objects
+    // we'll be drawing.
+    
+    initBuffers();
+    
+    // Set up to draw the scene periodically.
+    
+    setInterval(drawScene, 15);
+  }
+}
 
-};
 
-Game.update = function() {
 
-};
+//
+// initBuffers
+//
+// Initialize the buffers we'll need. For this demo, we just have
+// one object -- a simple two-dimensional square.
+//
+function initBuffers() {
+  
+  // Create a buffer for the square's vertices.
+  
+  squareVerticesBuffer = gl.createBuffer();
+  
+  // Select the squareVerticesBuffer as the one to apply vertex
+  // operations to from here out.
+  
+  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+  
+  // Now create an array of vertices for the square. Note that the Z
+  // coordinate is always 0 here.
+  
+  var vertices = [
+    1.0,  1.0,  0.0,
+    -1.0, 1.0,  0.0,
+    1.0,  -1.0, 0.0,
+    -1.0, -1.0, 0.0
+  ];
+  
+  // Now pass the list of vertices into WebGL to build the shape. We
+  // do this by creating a Float32Array from the JavaScript array,
+  // then use it to fill the current vertex buffer.
+  
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+  
+  // Now set up the colors for the vertices
+  
+  var uv = [
+    1.0,  1.0,
+    -1.0, 1.0,
+    1.0,  -1.0,
+    -1.0, -1.0
+  ];
+  
+  squareVerticesColorBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesColorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uv), gl.STATIC_DRAW);
+}
 
-Game.initialize = function() {
-	for	(index = 0; index < 20; index++) {
-		var rect = {};
-		rect.x = index * 80;
-		rect.y = 500;
-		rect.width = 50;
-		rect.height = 50;
-		Game.rectangles[index] = rect;
-	}
-};
+//
+// drawScene
+//
+// Draw the scene.
+//
+function drawScene() {
+  // Clear the canvas before we start drawing on it.
 
-Game.run = (function() {
-Game.initialize();
-var loops = 0, msPerFrame = 1000 / Game.fps,
-	maxMsPerFrame = 10,
-	nextGameTick = (new Date).getTime();
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  
+  // Establish the perspective with which we want to view the
+  // scene. Our field of view is 45 degrees, with a width/height
+  // ratio of 640:480, and we only want to see objects between 0.1 units
+  // and 100 units away from the camera.
+  
+  perspectiveMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
+  
+  // Set the drawing position to the "identity" point, which is
+  // the center of the scene.
+  
+  loadIdentity();
+  
+  // Now move the drawing position a bit to where we want to start
+  // drawing the square.
+  
+  mvTranslate([-0.0, 0.0, -6.0]);
+  
+  // Draw the square by binding the array buffer to the square's vertices
+  // array, setting attributes, and pushing it to GL.
+  
+  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+  gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+  
+  // Set the colors attribute for the vertices.
+  
+  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesColorBuffer);
+  gl.vertexAttribPointer(vertexColorAttribute, 2, gl.FLOAT, false, 0, 0);
+  
+  // Draw the square.
+  
+  setMatrixUniforms();
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
 
-	return function() {
-	  loops = 0;
 
-	  while ((new Date).getTime() > nextGameTick) {
-		Game.update();
-		nextGameTick += msPerFrame;
-		loops++;
-	  }
-	  Game.draw();
-	};
-})();
+//
+// Matrix utility functions
+//
 
-Game.drawRect = function(x, y, width, height) {
-	// setup a GLSL program
-	var vertexShader = createShaderFromScriptElement(gl, "2d-vertex-shader");
-	var fragmentShader = createShaderFromScriptElement(gl, "2d-fragment-shader");
-	var program = createProgram(gl, [vertexShader, fragmentShader]);
-	gl.useProgram(program);
-	// look up where the vertex data needs to go.
-	var positionLocation = gl.getAttribLocation(program, "a_position");
-	
-	// Create a buffer and put a single clipspace rectangle in
-	// it (2 triangles)
-	// set the resolution
-	var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-	gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-	var buffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-	gl.bufferData(
-		gl.ARRAY_BUFFER, 
-		new Float32Array([
-			x, y, 
-			 x + width, y, 
-			x,  y + height, 
-			x,  y + height, 
-			 x + width, y, 
-			 x + width,  y + height]), 
-		gl.STATIC_DRAW);
-	gl.enableVertexAttribArray(positionLocation);
-	gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-	
-	// draw
-	gl.drawArrays(gl.TRIANGLES, 0, 6);
-};
+function loadIdentity() {
+  mvMatrix = Matrix.I(4);
+}
+
+function multMatrix(m) {
+  mvMatrix = mvMatrix.x(m);
+}
+
+function mvTranslate(v) {
+  multMatrix(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
+}
+
+function setMatrixUniforms() {
+  var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+  gl.uniformMatrix4fv(pUniform, false, new Float32Array(perspectiveMatrix.flatten()));
+
+  var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+  gl.uniformMatrix4fv(mvUniform, false, new Float32Array(mvMatrix.flatten()));
+  
+  var time = (Date.now()/1000.0)%86400.0;
+  var timeUniform = gl.getUniformLocation(shaderProgram, "uTime");
+  gl.uniform1f(timeUniform, time);
+}

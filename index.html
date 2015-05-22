@@ -1,66 +1,62 @@
-<!doctype html>
 <html>
-<head>
-	<meta charset="utf-8">
-	<script language="javascript" type="text/javascript" src="webgl-utils.js"></script>
-	<script language="javascript" type="text/javascript" src="game.js"></script>
-	<title>Untitled Document</title>
+  <head>
+    <title>WebGL Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="webgl.css" type="text/css">
+    <script src="sylvester.js" type="text/javascript"></script>
+    <script src="glUtils.js" type="text/javascript"></script>
+    <script src="GLManager.js" type="text/javascript"></script>
+	<script src="game.js" type="text/javascript"></script>
 
-	<style type="text/css">
-	  html, body {
-	  width:  100%;
-	  height: 100%;
-	  margin: 0px;
-	  overflow:hidden;
-	}
-	</style>  
+    <!-- Fragment shader program -->
 
-	<script type="text/javascript">	
-	var gl;
-	var canvas;
-	var run = true;
-
-	function start() {
-	  canvas = document.getElementById("canvas");
-	  canvas.width = window.innerWidth;
-	  canvas.height = window.innerHeight;
-	  gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-	  if (!gl) {
-		document.write("WebGL not working. Get a newer computer.");
-		return;
-	  }
-	  Game._intervalId = setInterval(Game.run, 0);
-	}
-	</script>
-
-	<script id="2d-vertex-shader" type="x-shader/x-vertex">
-	attribute vec2 a_position;
-
-	uniform vec2 u_resolution;
-
-	void main() {
-	   // convert the rectangle from pixels to 0.0 to 1.0
-	   vec2 zeroToOne = a_position / u_resolution;
-
-	   // convert from 0->1 to 0->2
-	   vec2 zeroToTwo = zeroToOne * 2.0;
-
-	   // convert from 0->2 to -1->+1 (clipspace)
-	   vec2 clipSpace = zeroToTwo - 1.0;
-
-	   gl_Position = vec4(clipSpace, 0, 1);
-	}
-	</script>
-
-	<script id="2d-fragment-shader" type="x-shader/x-fragment">
-		void main() {
-		   gl_FragColor = vec4(0,1,0,1);  // green
+    <script id="shader-fs" type="x-shader/x-fragment">
+		#define PI 3.14159265358979
+		
+		uniform lowp float uTime;
+		
+		varying lowp vec2 vUV;
+		
+		void main(void) {
+		
+			lowp float d = length(vUV)-0.5;
+			
+			lowp vec2 circleUV = vec2(atan(vUV.y, vUV.x), d);
+			
+			d += 0.05*sin(8.0*circleUV.x+2.0*PI*uTime);
+			d += 0.02*sin(8.0*PI*vUV.x)+0.01*sin(8.0*PI*vUV.y);
+			d += 0.02*sin(16.0*PI*vUV.x);
+			d += 0.02*sin(16.0*PI*vUV.y);
+		
+			lowp float alphaA = clamp(-d, 0.0, 1.0);
+			lowp float alphaB = clamp(1.0-d, 0.0, 1.0);
+			lowp float alpha = mix(alphaA, alphaB, clamp(0.5+d*64.0, 0.0, 1.0));
+			
+			gl_FragColor = vec4(vec3(1.0), alpha);
 		}
-	</script>
-</head>
-
-
-<body onload="start()">
-	<canvas id="canvas" width="640" height="480">Your browser sucks.</canvas>
-</body>
+    </script>
+    
+    <!-- Vertex shader program -->
+    
+    <script id="shader-vs" type="x-shader/x-vertex">
+		attribute vec3 aVertexPosition;
+		attribute vec2 aVertexUV;
+    
+		uniform mat4 uMVMatrix;
+		uniform mat4 uPMatrix;
+      
+		varying lowp vec2 vUV;
+    
+		void main(void) {
+			gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+			vUV = aVertexUV;
+		}
+    </script>
+  </head>
+  
+  <body onload="start()">
+    <canvas id="glcanvas" width="640" height="480">
+      Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+    </canvas>
+  </body>
 </html>
