@@ -6,6 +6,8 @@
     <script src="sylvester.js" type="text/javascript"></script>
     <script src="glUtils.js" type="text/javascript"></script>
     <script src="GLManager.js" type="text/javascript"></script>
+	<script src="Sprite.js" type="text/javascript"></script>
+	<script src="SpriteBatch.js" type="text/javascript"></script>
 	<script src="game.js" type="text/javascript"></script>
 
     <!-- Fragment shader program -->
@@ -23,7 +25,7 @@
 			
 			lowp vec2 circleUV = vec2(atan(vUV.y, vUV.x), d);
 			
-			d += 0.05*sin(8.0*circleUV.x+2.0*PI*uTime);
+			d += 0.05*sin(32.0*circleUV.x+2.0*PI*uTime);
 			d += 0.02*sin(8.0*PI*vUV.x)+0.01*sin(8.0*PI*vUV.y);
 			d += 0.02*sin(16.0*PI*vUV.x);
 			d += 0.02*sin(16.0*PI*vUV.y);

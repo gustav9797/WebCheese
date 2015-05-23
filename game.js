@@ -1,51 +1,23 @@
 var canvas;
 var gl;
-var squareVerticesBuffer;
-var squareVerticesUVBuffer;
 var mvMatrix;
 var shaderProgram;
-var vertexPositionAttribute;
-var vertexUVAttribute;
 var perspectiveMatrix;
+var glManager;
+var spriteBatch;
 
 
 function start() {
-  canvas = document.getElementById("glcanvas");
+	canvas = document.getElementById("glcanvas");
+	glManager = new GLManager(canvas);
+	spriteBatch = new SpriteBatch();
 
-  var glManager = new GLManager(canvas);
-  
   if (gl) {
-    initBuffers();
-    
+	spriteBatch.init(gl);
     setInterval(drawScene, 15);
   }
 }
 
-
-
-function initBuffers() {
-  var vertices = [
-    1.0,  1.0,  0.0,
-    -1.0, 1.0,  0.0,
-    1.0,  -1.0, 0.0,
-    -1.0, -1.0, 0.0
-  ];
-  
-  var uv = [
-    1.0,  1.0,
-    -1.0, 1.0,
-    1.0,  -1.0,
-    -1.0, -1.0
-  ];
-  
-  squareVerticesBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  
-  squareVerticesUVBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesUVBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uv), gl.STATIC_DRAW);
-}
 
 
 function drawScene() {
@@ -55,16 +27,16 @@ function drawScene() {
   
   loadIdentity();
   
-  mvTranslate([-0.0, 0.0, -6.0]);
+  mvTranslate([-0.0, 0.0, -3.0]);
   
-  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
-  gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-  
-  gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesUVBuffer);
-  gl.vertexAttribPointer(vertexUVAttribute, 2, gl.FLOAT, false, 0, 0);
-  
+ 
   setMatrixUniforms();
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+ 
+  var sprite = new Sprite();
+  sprite.pos.x = 0.0;
+  spriteBatch.draw(sprite);
+  
+  spriteBatch.render(gl);
 }
 
 
